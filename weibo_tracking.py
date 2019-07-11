@@ -20,6 +20,12 @@ def printdom(doms):
     print(i.text)
     print("##############################")
 
+def returndom(doms):
+  rlt = []
+  for i in doms:
+    rlt.append(i.text)
+  return rlt
+
 ##################################
 
 b = webdriver.Chrome()
