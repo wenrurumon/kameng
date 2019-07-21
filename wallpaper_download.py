@@ -37,16 +37,13 @@ b.get('https://github.com/wenrurumon/kameng/blob/master/starid.txt')
 dom = b.find_element_by_css_selector('body > div.application-main > div > main > div.container-lg.new-discussion-timeline.experiment-repo-nav.p-responsive > div.repository-content > div.Box.mt-3.position-relative > div.Box-body.p-0.blob-wrapper.data.type-text > table > tbody')
 ids = dom.text.splitlines()
 
-count = 0
-for id in ids:
+count = 54
+for id in ids[(count+1):len(ids)]:
     count = count + 1
     print('%d, %s'%(count,id))
     urls = getimg(id)
     for i in range(0,len(urls)):
         dlimg(urls[i],"/home/wenrurumon/Documents/note/wallpaper/%s_%d"%(id,i))
-
-
-##############################
 
 f = open('test.txt','w')
 
@@ -70,3 +67,6 @@ url = 'https://ss1.bdstatic.com/70cFvXSh_Q1YnxGkpoWK1HF6hhy/it/u=36082272,162883
 img = requests.get(url).content
 with open('test.jpg','wb') as f:
     f.write(img)
+
+
+
