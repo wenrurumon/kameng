@@ -79,3 +79,5 @@ for(i in 1:length(id)){
   print(paste(i,idi,Sys.time()))
   rlt[[i]] <- try(idolinfo(idi))
 }
+
+              
