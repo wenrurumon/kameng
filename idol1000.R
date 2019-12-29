@@ -1,4 +1,3 @@
-
 rm(list=ls())
 library(tmcn)
 library(RSelenium)
@@ -28,15 +27,6 @@ rmspace <- function(x){
   x <- sapply(x,function(x) paste(x,collapse=''))
   gsub("\\[.*?\\]|\n","",x)
 }
-# getjson <- function(x){
-#   x.m <- cbind(
-#     paste0('\"',names(x),'\"'),
-#     paste0('\"',as.vector(x),'\"')
-#   )
-#   paste0('{',
-#          paste(apply(x.m,1,function(x){paste(x,collapse=':')}),collapse=','),
-#          '}')
-# }
 getjson <- function(x){
   x.m <- t(matrix(x,nrow=2))
   x.m <- cbind(
@@ -51,9 +41,11 @@ getbk <- function(idi,urli=NULL){
   if(is.null(urli)){
     chrome$navigate('http://baike.baidu.com')
     input <- chrome$findElement('name',"word")
-    input$sendKeysToElement(list(idi,key='enter'))  
+    input$sendKeysToElement(list(idi,key='enter'))
+    urli <- c('urli',chrome$getCurrentUrl()[[1]])
   } else {
     chrome$navigate(urli)
+    urli <- c('urli',urli)
   }
   lemmasummary <- chrome$findElement('class','lemma-summary') %>% geteletext
   lemmasummary <- c('summary',lemmasummary[[1]]%>%rmspace)
@@ -63,7 +55,7 @@ getbk <- function(idi,urli=NULL){
   basinfo <- basinfo[rowSums(nchar(basinfo))>0,,drop=F]
   basinfo <- as.vector(t(basinfo))
   basinfo <- c(basinfo,'性别',sign(nchar(gsub('男','',lemmasummary[[2]]))-nchar(gsub('女','',lemmasummary[[2]]))))
-  c(lemmasummary,basinfo)
+  c(urli,lemmasummary,basinfo)
 }
 getbk2 <- function(idi,urli=NULL){
   rlt <- try(getbk(idi,urli))
@@ -78,7 +70,13 @@ getxy <- function(idi,urli=NULL){
     chrome$navigate('https://www.xunyee.cn/')
     input <- chrome$findElement('id','indexSearchInput')
     input$sendKeysToElement(list(idi,key='enter'))
-    x <- chrome$findElement('class','smallsite_list_box_img')
+    x <- chrome$findElements('class','link4')
+    if(length(x)>1){
+      x.names <- unlist(geteletext(x))
+      x <- x[[which(x.names==idi)]]
+    } else {
+      x <- x[[1]]
+    }
     x <- x$getElementAttribute('href')[[1]]
     chrome$navigate(x)
   }else{
@@ -99,46 +97,52 @@ getxy2 <- function(idi,urli=NULL){
     return(rlt)
   }
 }
-gettb <- function(idi,urli=NULL){
-  if(is.null(urli)){
-    chrome$navigate('http://tieba.baidu.com/')
-    input <- chrome$findElement('name','kw1')
-    input$sendKeysToElement(list(idi,key='enter'))
-  }else{
-    chrome$navigate(urli)
-  }
-  headimg2 <- chrome$findElement('id','forum-card-head')
-  headimg2 <- c('headimg_baike',headimg2$getElementAttribute('src')[[1]])
-  bkimg2 <- chrome$findElement('id','forum-card-banner')
-  bkimg2 <- bkimg2$getElementAttribute('src')[[1]]
-  bkimg2 <- c('bkimg_baike',bkimg2)
-  c(headimg2,bkimg2)
+getbd <- function(idi,wait=1){
+  chrome$navigate('https://image.baidu.com')
+  input <- chrome$findElement('id','kw')
+  input$sendKeysToElement(list(paste(idi,'壁纸'),key='enter'))
+  Sys.sleep(wait)
+  bdbkimg <- chrome$findElement('class','main_img')
+  bdbkimg <- bdbkimg$findElements('class','img-hover')
+  bdbkimg <- sapply(bdbkimg,function(x){x$getElementAttribute(attr='data-imgurl')})[[1]]
+  bdbkimg <- c('bdbkimg',bdbkimg)
+  if(length(bdbkimg)==1){bdbkimg<-c(bdbkimg,NA)}
+  chrome$navigate('https://image.baidu.com')
+  input <- chrome$findElement('id','kw')
+  input$sendKeysToElement(list(paste(idi,'头像'),key='enter'))
+  Sys.sleep(wait)
+  bdhdimg <- chrome$findElement('class','main_img')
+  bdhdimg <- bdhdimg$findElements('class','img-hover')
+  bdhdimg <- sapply(bdhdimg,function(x){x$getElementAttribute(attr='data-imgurl')})[[1]]
+  bdhdimg <- c('bdhdimg',bdhdimg)
+  if(length(bdhdimg)==1){bdhdimg<-c(bdhdimg,NA)}
+  c(bdbkimg,bdhdimg)
 }
-gettb2 <- function(idi,urli=NULL){
-  rlt <- try(gettb(idi,urli))
+getbd2 <- function(idi,wait=1){
+  rlt <- try(getbd(idi,wait))
   if(class(rlt)=='try-error'){
     return(NULL)
   } else {
     return(rlt)
   }
 }
+getid <- function(idi,urlbk=NULL,urlxy=NULL,wait=1){
+  #urlbk<-urlxy<-NULL;wait<-1
+  x1 <- getbk2(idi,urlbk)
+  x2 <- getxy2(idi,urlbk)
+  x3 <- getbd2(idi,wait)
+  x4 <- c(length(x1),length(x2),length(x3))
+  list(x1,x2,x3,x4)
+}
+
 getidolname <- function(urli){
   chrome$navigate(urli)
   ids <- chrome$findElements('class','rank_left_lib')
   rlt <- ids %>% geteletext
   unlist(rlt)
 }
-getinfo <- function(i,urlbk=NULL,urlxy=NULL,urltb=NULL){
-  idi <- idolscore[i,2]
-  scorei <- idolscore[i,3]
-  print(paste(i,idi,Sys.time()))
-  # urlbk <- urlxy <- urltb <- NULL
-  x0 <- c('idi',idi,'scorei',scorei)
-  x1 <- getbk2(idi,urlbk)
-  x2 <- getxy2(idi,urlxy)
-  x3 <- gettb2(idi,urltb)
-  x4 <- c(length(x1),length(x2),length(x3))
-  list(base=x0,baike=x1,xunyi=x2,tieba=x3,check=x4)
+getinfo <- function(idi,urlbk=NULL,urlxy=NULL,urltb=NULL){
+
 }
 checkerror <- function(i){
   print(idolscore[i,])
@@ -157,6 +161,29 @@ chrome <- remoteDriver(remoteServerAddr = "localhost"
                        , port = 4444L
                        , browserName = "chrome")
 chrome$open()
+
+############################
+# Re
+############################
+
+setwd('/Users/wenrurumon/Desktop/kameng/idolinfo')
+id <- unique(openxlsx::read.xlsx("榜单ID.xlsx")[,2])
+id[50] <- '杨颖'
+
+rlt <- list()
+for(i in 1:5){
+  print(paste(i,id[i],Sys.time()))
+  rlt[[i]] <- try(getid(id[i]))
+}
+
+
+
+
+
+
+############################
+# Setup
+############################
 
 #Get Idol List
 
