@@ -28,7 +28,10 @@ rmspace <- function(x){
   gsub("\\[.*?\\]|\n","",x)
 }
 getjson <- function(x){
+  x <- unlist(x)
   x.m <- t(matrix(x,nrow=2))
+  x.m <- gsub('\"','',x.m)
+  # x.m <- gsub('\\','/',x.m)
   x.m <- cbind(
     paste0('\"',x.m[,1],'\"'),
     paste0('\"',x.m[,2],'\"')
@@ -129,20 +132,16 @@ getbd2 <- function(idi,wait=1){
 getid <- function(idi,urlbk=NULL,urlxy=NULL,wait=1){
   #urlbk<-urlxy<-NULL;wait<-1
   x1 <- getbk2(idi,urlbk)
-  x2 <- getxy2(idi,urlbk)
+  x2 <- getxy2(idi,urlxy)
   x3 <- getbd2(idi,wait)
   x4 <- c(length(x1),length(x2),length(x3))
   list(x1,x2,x3,x4)
 }
-
 getidolname <- function(urli){
   chrome$navigate(urli)
   ids <- chrome$findElements('class','rank_left_lib')
   rlt <- ids %>% geteletext
   unlist(rlt)
-}
-getinfo <- function(idi,urlbk=NULL,urlxy=NULL,urltb=NULL){
-
 }
 checkerror <- function(i){
   print(idolscore[i,])
@@ -177,10 +176,20 @@ for(i in 1:length(id)){
   rlt[[i]] <- try(getid(id[i]))
 }
 
+#Validate
+which(!sapply(rlt,is.list))
+which(apply(sapply(rlt,function(x){x[[4]]}),2,prod)==0)
 
+#Fix
+rlt[[48]] <- getid(id[48],urlbk='https://baike.baidu.com/item/%E8%B5%B5%E7%A3%8A/19326043?fr=aladdin',urlxy='https://www.xunyee.cn/person-193571.html')
+rlt[[86]] <- getid(id[86],urlbk='https://baike.baidu.com/iem/%E8%B5%B5%E8%AE%A9/23412526?fr=aladdin')
+rlt[[97]] <- getid(id[[97]],urlbk='https://baike.baidu.com/item/%E9%83%91%E4%BA%91%E9%BE%99/23143708?fr=aladdin')
 
-
-
+#Export
+rlt2 <- paste0('['
+       ,paste(lapply(rlt,function(x){getjson(x[1:3])}),collapse=',')
+       ,']')
+checkjson(rlt2)
 
 ############################
 # Setup
